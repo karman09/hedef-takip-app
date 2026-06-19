@@ -7,13 +7,12 @@ import os
 st.set_page_config(page_title="Başarı Takip", layout="wide")
 
 # --- Kullanıcı ve Resim Eşleşmeleri ---
-# Dosya panelindeki isimler ile birebir aynı olmalıdır
 kullanici_sozlugu = {
     "Gizem": "Gizem.png",
     "Gülin": "Gülin.png",
     "Kevser": "Kevser.png",
-    "melek": "melek.png",
-    "tayfun": "tayfun.png"
+    "Melek": "melek.png",
+    "Tayfun": "tayfun.png"
 }
 
 # --- CSS ile Özel Tema ---
@@ -25,7 +24,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🚀 Başarı ve Zaman Yönetim Merkezi")
+st.title("🚀 Başarı ve Zaman Yönetimi")
 st.markdown("---")
 
 # Session state başlatma
@@ -37,6 +36,10 @@ if 'veri_listesi' not in st.session_state:
 # --- Sidebar: Yeni Kayıt ---
 with st.sidebar:
     st.header("📝 Yeni Kayıt")
+    
+    # Resim için ayrılmış dinamik alan
+    resim_alani = st.empty()
+    
     with st.form("yeni_kayit", clear_on_submit=True):
         tarih = st.date_input("Tarih", datetime.date.today())
         saat = st.time_input("Saat", datetime.time(9, 0))
@@ -44,34 +47,36 @@ with st.sidebar:
         # --- Kişi Seçimi ---
         isim = st.selectbox("Ad Soyad", list(kullanici_sozlugu.keys()))
         
-        # Seçilen kişiye göre resmi getir
-        resim_dosyasi = kullanici_sozlugu[isim]
-        if os.path.exists(resim_dosyasi):
-            st.image(resim_dosyasi, width=100)
-        else:
-            st.warning(f"Dosya bulunamadı: {resim_dosyasi}")
-
         konu = st.text_input("Konu Başlığı")
         hedef_saat = st.number_input("Hedeflenen Saat", min_value=0.0, step=0.5)
         gercek_saat = st.number_input("Gerçekleşen Saat", min_value=0.0, step=0.5)
         
         ekle = st.form_submit_button("HEDEFE EKLE 🎯")
+
+    # --- Resmin her seçimde güncellenmesi (Form dışı ama sidebar içi) ---
+    if isim in kullanici_sozlugu:
+        dosya = kullanici_sozlugu[isim]
+        if os.path.exists(dosya):
+            resim_alani.image(dosya, width=100)
+        else:
+            resim_alani.warning(f"Resim bulunamadı: {dosya}")
         
-        if ekle:
-            if konu.strip() == "":
-                st.error("Lütfen konu başlığını doldurunuz.")
-            else:
-                yeni_satir = pd.DataFrame([{
-                    "Tarih": tarih,
-                    "Saat": saat,
-                    "Ad Soyad": isim,
-                    "Konu": konu,
-                    "Hedef (Saat)": hedef_saat,
-                    "Gerçekleşen (Saat)": gercek_saat,
-                    "Başarı (%)": round((gercek_saat / hedef_saat * 100) if hedef_saat > 0 else 0, 2)
-                }])
-                st.session_state.veri_listesi = pd.concat([st.session_state.veri_listesi, yeni_satir], ignore_index=True)
-                st.success(f"Harika bir adım attın, {isim}! 🌟")
+    # --- Kayıt İşlemi ---
+    if ekle:
+        if konu.strip() == "":
+            st.error("Lütfen konu başlığını doldurunuz.")
+        else:
+            yeni_satir = pd.DataFrame([{
+                "Tarih": tarih,
+                "Saat": saat,
+                "Ad Soyad": isim,
+                "Konu": konu,
+                "Hedef (Saat)": hedef_saat,
+                "Gerçekleşen (Saat)": gercek_saat,
+                "Başarı (%)": round((gercek_saat / hedef_saat * 100) if hedef_saat > 0 else 0, 2)
+            }])
+            st.session_state.veri_listesi = pd.concat([st.session_state.veri_listesi, yeni_satir], ignore_index=True)
+            st.success(f"Harika bir adım attın, {isim}! 🌟")
 
 # --- Dashboard ---
 st.subheader("📊 İlerleme Paneli")
@@ -84,17 +89,16 @@ if not st.session_state.veri_listesi.empty:
     
     for _, row in st.session_state.veri_listesi.iterrows():
         cols = st.columns([1, 6])
-        isim = row['Ad Soyad']
+        isim_row = row['Ad Soyad']
         
         with cols[0]:
-            # İsim ile sözlükteki anahtarı eşleştirip resmi göster
-            if isim in kullanici_sozlugu:
-                dosya = kullanici_sozlugu[isim]
+            if isim_row in kullanici_sozlugu:
+                dosya = kullanici_sozlugu[isim_row]
                 if os.path.exists(dosya):
                     st.image(dosya, width=50)
         
         with cols[1]:
-            st.write(f"**{isim}** - {row['Konu']}")
+            st.write(f"**{isim_row}** - {row['Konu']}")
             st.progress(min(row["Başarı (%)"] / 100, 1.0))
     
     # İndirme Butonu
