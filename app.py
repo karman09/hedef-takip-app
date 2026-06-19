@@ -37,31 +37,26 @@ if 'veri_listesi' not in st.session_state:
 with st.sidebar:
     st.header("📝 Yeni Kayıt")
     
-    # Resim için ayrılmış dinamik alan
-    resim_alani = st.empty()
+    # 1. Seçim alanını formun dışına, en üste alıyoruz
+    isim = st.selectbox("Ad Soyad", list(kullanici_sozlugu.keys()))
     
+    # 2. Resmi formun dışında gösteriyoruz (böylece her an güncellenir)
+    if isim in kullanici_sozlugu:
+        dosya = kullanici_sozlugu[isim]
+        if os.path.exists(dosya):
+            st.image(dosya, width=100)
+    
+    # 3. Formu sadece veri girişi için kullanıyoruz
     with st.form("yeni_kayit", clear_on_submit=True):
         tarih = st.date_input("Tarih", datetime.date.today())
         saat = st.time_input("Saat", datetime.time(9, 0))
-
-        # --- Kişi Seçimi ---
-        isim = st.selectbox("Ad Soyad", list(kullanici_sozlugu.keys()))
-        
         konu = st.text_input("Konu Başlığı")
         hedef_saat = st.number_input("Hedeflenen Saat", min_value=0.0, step=0.5)
         gercek_saat = st.number_input("Gerçekleşen Saat", min_value=0.0, step=0.5)
         
         ekle = st.form_submit_button("HEDEFE EKLE 🎯")
 
-    # --- Resmin her seçimde güncellenmesi (Form dışı ama sidebar içi) ---
-    if isim in kullanici_sozlugu:
-        dosya = kullanici_sozlugu[isim]
-        if os.path.exists(dosya):
-            resim_alani.image(dosya, width=100)
-        else:
-            resim_alani.warning(f"Resim bulunamadı: {dosya}")
-        
-    # --- Kayıt İşlemi ---
+    # 4. Veri ekleme mantığını formun dışına taşıyoruz
     if ekle:
         if konu.strip() == "":
             st.error("Lütfen konu başlığını doldurunuz.")
@@ -77,6 +72,7 @@ with st.sidebar:
             }])
             st.session_state.veri_listesi = pd.concat([st.session_state.veri_listesi, yeni_satir], ignore_index=True)
             st.success(f"Harika bir adım attın, {isim}! 🌟")
+            st.rerun() # Sayfayı güncelleyerek verinin tabloya gelmesini sağlar
 
 # --- Dashboard ---
 st.subheader("📊 İlerleme Paneli")
