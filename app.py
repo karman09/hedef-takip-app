@@ -7,13 +7,13 @@ import os
 st.set_page_config(page_title="Başarı Takip", layout="wide")
 
 # --- Kullanıcı ve Resim Eşleşmeleri ---
-# Dosya isimlerinin klasördekilerle aynı olduğundan emin olun
+# Dosya panelindeki isimler ile birebir aynı olmalıdır
 kullanici_sozlugu = {
+    "Gizem": "Gizem.png",
     "Gülin": "Gülin.png",
     "Kevser": "Kevser.png",
-    "Melek": "melek.png",
-    "Tayfun": "tayfun.png",
-    "Gizem": "Gizem.jpg"
+    "melek": "melek.png",
+    "tayfun": "tayfun.png"
 }
 
 # --- CSS ile Özel Tema ---
@@ -49,7 +49,7 @@ with st.sidebar:
         if os.path.exists(resim_dosyasi):
             st.image(resim_dosyasi, width=100)
         else:
-            st.warning("Resim dosyası bulunamadı.")
+            st.warning(f"Dosya bulunamadı: {resim_dosyasi}")
 
         konu = st.text_input("Konu Başlığı")
         hedef_saat = st.number_input("Hedeflenen Saat", min_value=0.0, step=0.5)
@@ -87,8 +87,11 @@ if not st.session_state.veri_listesi.empty:
         isim = row['Ad Soyad']
         
         with cols[0]:
-            if isim in kullanici_sozlugu and os.path.exists(kullanici_sozlugu[isim]):
-                st.image(kullanici_sozlugu[isim], width=50)
+            # İsim ile sözlükteki anahtarı eşleştirip resmi göster
+            if isim in kullanici_sozlugu:
+                dosya = kullanici_sozlugu[isim]
+                if os.path.exists(dosya):
+                    st.image(dosya, width=50)
         
         with cols[1]:
             st.write(f"**{isim}** - {row['Konu']}")
