@@ -6,16 +6,26 @@ import os
 # Sayfa Genişliği ve Ayarları
 st.set_page_config(page_title="Başarı Takip", layout="wide")
 
-# --- Motivasyon 
+# --- Kalıcı Veri Yönetimi ---
+DATA_FILE = "veri_kayitlari.csv"
+
+def veri_yukle():
+    if os.path.exists(DATA_FILE):
+        return pd.read_csv(DATA_FILE)
+    else:
+        return pd.DataFrame(columns=[
+            "Tarih", "Saat", "Ad Soyad", "Konu", "Hedef (Saat)", "Gerçekleşen (Saat)", "Başarı (%)"
+        ])
+
+def veri_kaydet(df):
+    df.to_csv(DATA_FILE, index=False)
+
+# --- Motivasyon Sözleri ---
 motivasyon_sozleri = [
     "Başarının yolu, denemekten geçer.", "Küçük adımlar, büyük hedeflere götürür.",
     "Bugün, dünden daha fazlasını yapabilirsin.", "Başarı, hazırlık ve fırsatın buluşmasıdır.",
     "Kendine inan, her şeyin yarısını başarmışsın demektir.", "Asla pes etme, büyük şeyler zaman alır.",
-    "Zorluklar, başarının değerini artıran süslerdir.", "Dün yaptıklarınla yetiniyorsan, henüz hiçbir şey yapmamışsın demektir.",
-    "İnanmak başarmanın yarısıdır.", "Zaman en değerli sermayendir, iyi kullan.",
-    "Bugün attığın her adım, yarınki başarının temelidir.", "Odaklan ve devam et.",
-    "Başarı tesadüf değildir, planlı çalışmanın sonucudur.", "Pes etmediğin sürece yenilmiş sayılmazsın."
-    # Buraya EKLE
+    "Zorluklar, başarının değerini artıran süslerdir.", "Dün yaptıklarınla yetiniyorsan, henüz hiçbir şey yapmamışsın demektir."
 ]
 
 # --- Kullanıcı ve Resim Eşleşmeleri ---
@@ -44,20 +54,16 @@ st.markdown(f'<div class="soz-kutusu">🌟 <b>Günün Sözü:</b> {motivasyon_so
 
 st.markdown("---")
 
-# Session state başlatma
+# Verileri dosyadan yükle
 if 'veri_listesi' not in st.session_state:
-    st.session_state.veri_listesi = pd.DataFrame(columns=[
-        "Tarih", "Saat", "Ad Soyad", "Konu", "Hedef (Saat)", "Gerçekleşen (Saat)", "Başarı (%)"
-    ])
+    st.session_state.veri_listesi = veri_yukle()
 
 # --- Sidebar: Yeni Kayıt ---
 with st.sidebar:
     st.header("📝 Yeni Kayıt")
     
-    # İsim seçimi (Form dışı - resmi anında değiştirmek için)
     isim = st.selectbox("Ad Soyad", list(kullanici_sozlugu.keys()))
     
-    # Resim gösterimi
     if isim in kullanici_sozlugu and os.path.exists(kullanici_sozlugu[isim]):
         st.image(kullanici_sozlugu[isim], width=100)
     
@@ -67,7 +73,6 @@ with st.sidebar:
         konu = st.text_input("Konu Başlığı")
         hedef_saat = st.number_input("Hedeflenen Saat", min_value=0.0, step=0.5)
         gercek_saat = st.number_input("Gerçekleşen Saat", min_value=0.0, step=0.5)
-        
         ekle = st.form_submit_button("HEDEFE EKLE 🎯")
 
     if ekle:
@@ -75,8 +80,8 @@ with st.sidebar:
             st.error("Lütfen konu başlığını doldurunuz.")
         else:
             yeni_satir = pd.DataFrame([{
-                "Tarih": tarih,
-                "Saat": saat,
+                "Tarih": str(tarih),
+                "Saat": str(saat),
                 "Ad Soyad": isim,
                 "Konu": konu,
                 "Hedef (Saat)": hedef_saat,
@@ -84,12 +89,21 @@ with st.sidebar:
                 "Başarı (%)": round((gercek_saat / hedef_saat * 100) if hedef_saat > 0 else 0, 2)
             }])
             st.session_state.veri_listesi = pd.concat([st.session_state.veri_listesi, yeni_satir], ignore_index=True)
+            
+            # Veriyi dosyaya kaydet
+            veri_kaydet(st.session_state.veri_listesi)
+            
             st.success(f"Harika bir adım attın, {isim}! 🌟")
             st.rerun()
 
 # --- Dashboard ---
 st.subheader("📊 İlerleme Paneli")
 st.session_state.veri_listesi = st.data_editor(st.session_state.veri_listesi, use_container_width=True)
+
+# Düzenleme yapıldığında dosyayı güncelle
+if st.button("Tablo Değişikliklerini Kaydet 💾"):
+    veri_kaydet(st.session_state.veri_listesi)
+    st.rerun()
 
 if not st.session_state.veri_listesi.empty:
     st.divider()
@@ -102,7 +116,7 @@ if not st.session_state.veri_listesi.empty:
                 st.image(kullanici_sozlugu[isim_row], width=50)
         with cols[1]:
             st.write(f"**{isim_row}** - {row['Konu']}")
-            st.progress(min(row["Başarı (%)"] / 100, 1.0))
+            st.progress(min(float(row["Başarı (%)"]) / 100, 1.0))
     
     csv = st.session_state.veri_listesi.to_csv(index=False).encode('utf-8')
     st.download_button("Tüm Verileri İndir (CSV) 📥", csv, "hedef_takip.csv", "text/csv")
