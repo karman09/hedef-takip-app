@@ -5,47 +5,30 @@ import datetime
 # Sayfa Genişliği ve Ayarları
 st.set_page_config(page_title="Başarı Takip", layout="wide")
 
-# --- CSS ile Özel Tema ve Motivasyonel Dokunuşlar ---
+# --- CSS ile Özel Tema ---
 st.markdown("""
     <style>
-    /* Başlık rengini ve fontunu değiştir */
-    .stApp {
-        background-color: #f0f2f6;
-    }
-    h1 {
-        color: #1f77b4;
-        text-align: center;
-        font-family: 'Arial', sans-serif;
-    }
-    /* Metrik kartlarını daha dikkat çekici yap */
-    [data-testid="stMetricValue"] {
-        font-size: 30px !important;
-        color: #2e7d32 !important;
-    }
-    /* Butonları özelleştir */
+    .stApp { background-color: #f0f2f6; }
+    h1 { color: #1f77b4; text-align: center; font-family: 'Arial', sans-serif; }
+    [data-testid="stMetricValue"] { font-size: 30px !important; color: #2e7d32 !important; }
     div.stButton > button {
-        background-color: #4CAF50;
-        color: white;
-        border-radius: 20px;
-        border: none;
-        padding: 10px 24px;
-        transition: 0.3s;
+        background-color: #4CAF50; color: white; border-radius: 20px;
+        border: none; padding: 10px 24px; transition: 0.3s;
     }
-    div.stButton > button:hover {
-        background-color: #45a049;
-        transform: scale(1.05);
-    }
+    div.stButton > button:hover { background-color: #45a049; transform: scale(1.05); }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🚀 Başarı ve Zaman Yönetim Merkezi")
 st.markdown("---")
 
-# Session state başlatma
+# Session state başlatma (Eğer yoksa boş bir DataFrame oluştur)
 if 'veri_listesi' not in st.session_state:
-    st.session_state.veri_listesi = pd.DataFrame(columns=["Tarih", "Saat", "Ad Soyad", "Konu", "Hedef (Saat)", "Gerçekleşen (Saat)", "Başarı (%)"])
+    st.session_state.veri_listesi = pd.DataFrame(columns=[
+        "Tarih", "Saat", "Ad Soyad", "Konu", "Hedef (Saat)", "Gerçekleşen (Saat)", "Başarı (%)"
+    ])
 
-# --- Sidebar ---
+# --- Sidebar: Yeni Kayıt ---
 with st.sidebar:
     st.header("📝 Yeni Kayıt")
     with st.form("yeni_kayit", clear_on_submit=True):
@@ -67,15 +50,22 @@ with st.sidebar:
                 "Gerçekleşen (Saat)": gercek_saat,
                 "Başarı (%)": round((gercek_saat / hedef_saat * 100) if hedef_saat > 0 else 0, 2)
             }])
+            # Yeni veriyi mevcut DataFrame'e ekle
             st.session_state.veri_listesi = pd.concat([st.session_state.veri_listesi, yeni_satir], ignore_index=True)
             st.success("Harika bir adım attın! 🌟")
 
-# --- Dashboard ---
+# --- Dashboard: Veri Düzenleme ---
 st.subheader("📊 İlerleme Paneli")
+st.write("Tablo üzerinden doğrudan değişiklik yapabilirsin:")
+
+# Veri düzenleyici
 edited_df = st.data_editor(st.session_state.veri_listesi, use_container_width=True)
 st.session_state.veri_listesi = edited_df
 
-if not st.session_state.veri_listesi.empty:
+# --- İstatistikler ve Görselleştirme ---
+# Hata almamak için güvenli kontrol (isinstance)
+if isinstance(st.session_state.veri_listesi, pd.DataFrame) and not st.session_state.veri_listesi.empty:
+    st.divider()
     col1, col2 = st.columns(2)
     toplam_hedef = st.session_state.veri_listesi["Hedef (Saat)"].sum()
     toplam_gercek = st.session_state.veri_listesi["Gerçekleşen (Saat)"].sum()
@@ -83,11 +73,8 @@ if not st.session_state.veri_listesi.empty:
     col1.metric("Toplam Hedeflenen", f"{toplam_hedef} Saat")
     col2.metric("Toplam Gerçekleşen", f"{toplam_gercek} Saat")
     
-    # Görsel Motivasyon
-    st.markdown("### İlerleme Durumun")
+    st.markdown("### Kişisel İlerleme Çubukları")
     for _, row in st.session_state.veri_listesi.iterrows():
         basari = row["Başarı (%)"]
         st.write(f"**{row['Ad Soyad']}** - {row['Konu']}")
-        st.progress(min(basari / 100, 1.0))
-        if basari >= 100:
-            st.caption("✅ Hedef tamamlandı, harikasın!")
+        st
