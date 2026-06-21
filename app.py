@@ -3,10 +3,8 @@ import pandas as pd
 import datetime
 import os
 
-# Sayfa Genişliği ve Ayarları
 st.set_page_config(page_title="Başarı Takip", layout="wide")
 
-# --- Kalıcı Veri Yönetimi ---
 DATA_FILE = "veri_kayitlari.csv"
 
 COLUMNS = [
@@ -17,7 +15,6 @@ COLUMNS = [
 def veri_yukle():
     if os.path.exists(DATA_FILE):
         df = pd.read_csv(DATA_FILE)
-        # Eski dosyalarla uyum: eksik sütunları tamamla
         for c in COLUMNS:
             if c not in df.columns:
                 df[c] = None
@@ -27,8 +24,13 @@ def veri_yukle():
 def veri_kaydet(df):
     df.to_csv(DATA_FILE, index=False)
 
+def veri_ekle(yeni_satir_df):
+    dosya_var = os.path.exists(DATA_FILE) and os.path.getsize(DATA_FILE) > 0
+    yeni_satir_df.reindex(columns=COLUMNS).to_csv(
+        DATA_FILE, mode="a", header=not dosya_var, index=False, encoding="utf-8"
+    )
+
 def sure_metni(dk):
-    """Dakikayı 'Xs Ydk' biçiminde yazar."""
     try:
         dk = int(round(float(dk)))
     except (ValueError, TypeError):
@@ -36,7 +38,6 @@ def sure_metni(dk):
     saat, dakika = divmod(dk, 60)
     return f"{saat}s {dakika}dk" if saat else f"{dakika}dk"
 
-# --- Motivasyon Sözleri ---
 motivasyon_sozleri = [
     "Başarının yolu, denemekten geçer.", "Küçük adımlar, büyük hedeflere götürür.",
     "Bugün, dünden daha fazlasını yapabilirsin.", "Başarı, hazırlık ve fırsatın buluşmasıdır.",
@@ -44,7 +45,6 @@ motivasyon_sozleri = [
     "Zorluklar, başarının değerini artıran süslerdir.", "Dün yaptıklarınla yetiniyorsan, henüz hiçbir şey yapmamışsın demektir."
 ]
 
-# --- Kullanıcı ve Resim Eşleşmeleri ---
 kullanici_sozlugu = {
     "Gizem": "Gizem.png",
     "Gülin": "Gülin.png",
@@ -53,7 +53,6 @@ kullanici_sozlugu = {
     "Tayfun": "tayfun.png"
 }
 
-# --- CSS Stilleri ---
 st.markdown("""
     <style>
     .stApp { background-color: #f0f2f6; }
@@ -65,18 +64,14 @@ st.markdown("""
 
 st.title("🚀 Başarı ve Zaman Yönetimi")
 
-# --- Dinamik Söz Alanı ---
 gun_index = datetime.date.today().timetuple().tm_yday % len(motivasyon_sozleri)
 st.markdown(f'<div class="soz-kutusu">🌟 <b>Günün Sözü:</b> {motivasyon_sozleri[gun_index]}</div>', unsafe_allow_html=True)
 st.markdown("---")
 
-# Verileri dosyadan yükle (oturum başına bir kez)
-if 'veri_listesi' not in st.session_state:
-    st.session_state.veri_listesi = veri_yukle()
+st.session_state.veri_listesi = veri_yukle().reindex(columns=COLUMNS)
 if 'aktif' not in st.session_state:
-    st.session_state.aktif = None  # çalışan kronometre bilgisi
+    st.session_state.aktif = None
 
-# --- Canlı sayaç (her saniye kendini yeniler) ---
 @st.fragment(run_every="1s")
 def canli_sayac():
     aktif = st.session_state.get("aktif")
@@ -87,12 +82,10 @@ def canli_sayac():
         d, sn = divmod(kalan, 60)
         st.metric("⏱️ Geçen Süre", f"{s:02d}:{d:02d}:{sn:02d}")
 
-# --- Sidebar: Kronometre ---
 with st.sidebar:
     st.header("⏱️ Çalışma Kronometresi")
 
     if st.session_state.aktif is None:
-        # Kronometre durmuş → yeni çalışma başlat
         isim = st.selectbox("Ad Soyad", list(kullanici_sozlugu.keys()))
         if isim in kullanici_sozlugu and os.path.exists(kullanici_sozlugu[isim]):
             st.image(kullanici_sozlugu[isim], width=100)
@@ -112,7 +105,6 @@ with st.sidebar:
                 }
                 st.rerun()
     else:
-        # Kronometre çalışıyor → canlı süre + durdur
         aktif = st.session_state.aktif
         if aktif["isim"] in kullanici_sozlugu and os.path.exists(kullanici_sozlugu[aktif["isim"]]):
             st.image(kullanici_sozlugu[aktif["isim"]], width=100)
@@ -138,15 +130,11 @@ with st.sidebar:
                 "Hedef (Saat)": hedef,
                 "Başarı (%)": basari,
             }])
-            st.session_state.veri_listesi = pd.concat(
-                [st.session_state.veri_listesi, yeni_satir], ignore_index=True
-            )
-            veri_kaydet(st.session_state.veri_listesi)   # kalıcı kayıt
+            veri_ekle(yeni_satir)
             st.session_state.aktif = None
             st.success(f"Kaydedildi! Bugün {sure_metni(sure_dk)} çalıştın, {aktif['isim']}! 🌟")
             st.rerun()
 
-# --- Ana Panel: Gün Gün Kayıt Listesi ---
 st.subheader("📊 Çalışma Kayıtları (Gün Gün)")
 
 df = st.session_state.veri_listesi
@@ -154,7 +142,6 @@ df = st.session_state.veri_listesi
 if df.empty:
     st.info("Henüz kayıt yok. Soldan bir çalışma başlatıp durdurduğunda burada gün gün listelenecek.")
 else:
-    # Tarihleri en yeniden eskiye doğru sırala
     tarihler = sorted(df["Tarih"].dropna().unique(), reverse=True)
 
     for t in tarihler:
@@ -189,7 +176,6 @@ else:
 
     st.divider()
 
-    # Tüm kayıtlar tek tabloda + indirme (silmeden saklanır)
     with st.expander("📋 Tüm kayıtları tablo olarak gör / indir"):
         st.dataframe(df, use_container_width=True)
         csv = df.to_csv(index=False).encode("utf-8")
