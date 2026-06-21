@@ -55,17 +55,105 @@ kullanici_sozlugu = {
 
 st.markdown("""
     <style>
-    .stApp { background-color: #f0f2f6; }
-    .soz-kutusu { background-color: #e3f2fd; padding: 15px; border-radius: 10px; border-left: 5px solid #2196f3; font-style: italic; color: #0d47a1; text-align: center; margin-bottom: 20px; }
-    div.stButton > button { background-color: #4CAF50; color: white; border-radius: 20px; }
-    .gun-baslik { background-color: #ffffff; padding: 10px 15px; border-radius: 8px; border-left: 5px solid #4CAF50; margin: 10px 0; }
+    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+    :root {
+        --bg: #EEF1F6;
+        --surface: #FFFFFF;
+        --ink: #17213C;
+        --text: #323C54;
+        --muted: #6E778D;
+        --accent: #D29333;
+        --accent-soft: #FBF2DF;
+        --brand: #1E7C70;
+        --brand-dark: #155F55;
+        --border: #E2E7F0;
+    }
+
+    .stApp { background-color: var(--bg); }
+    html, body, [class*="css"], .stMarkdown, p, label, input, textarea, select, .stApp { font-family: 'Inter', sans-serif; }
+    .stApp h1, .stApp h2, .stApp h3 { font-family: 'Sora', sans-serif; color: var(--ink); letter-spacing: -0.01em; }
+    .block-container { padding-top: 2.2rem; max-width: 1100px; }
+
+    .app-altbaslik { color: var(--muted); font-size: 0.98rem; margin: -0.4rem 0 1.1rem 0; font-weight: 500; }
+
+    .soz-kutusu {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--accent);
+        border-radius: 14px;
+        padding: 16px 22px;
+        margin: 6px 0 22px 0;
+        box-shadow: 0 4px 18px rgba(23, 33, 60, 0.05);
+        text-align: center;
+    }
+    .soz-etiket { display: block; color: var(--accent); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 6px; }
+    .soz-metin { font-style: italic; color: var(--ink); font-size: 1.06rem; line-height: 1.5; }
+
+    .gun-baslik {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--ink);
+        border-radius: 12px;
+        padding: 12px 18px;
+        margin: 18px 0 8px 0;
+        box-shadow: 0 2px 10px rgba(23, 33, 60, 0.04);
+        color: var(--text);
+        font-size: 0.95rem;
+    }
+    .gun-baslik b:first-child { color: var(--ink); font-size: 1.02rem; }
+    .gun-toplam { color: var(--brand); font-weight: 700; }
+
+    div.stButton > button {
+        background-color: var(--brand);
+        color: #FFFFFF;
+        border: none;
+        border-radius: 10px;
+        padding: 0.5rem 1.1rem;
+        font-weight: 600;
+        font-family: 'Inter', sans-serif;
+        box-shadow: 0 2px 8px rgba(30, 124, 112, 0.25);
+        transition: transform 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease;
+    }
+    div.stButton > button:hover { background-color: var(--brand-dark); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(30, 124, 112, 0.32); }
+    div.stButton > button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    div.stButton > button:disabled { background-color: #B9C2CF; box-shadow: none; transform: none; }
+
+    [data-testid="stSidebar"] { background-color: var(--surface); border-right: 1px solid var(--border); }
+    [data-testid="stSidebar"] h2 { font-size: 1.1rem; }
+
+    [data-testid="stMetric"] {
+        background: var(--accent-soft);
+        border: 1px solid #F0E2C2;
+        border-radius: 12px;
+        padding: 10px 16px;
+    }
+    [data-testid="stMetricValue"] { font-family: 'Sora', sans-serif; color: var(--ink); }
+    [data-testid="stMetricLabel"] { color: var(--muted); }
+
+    .stTextInput input, .stNumberInput input, .stDateInput input, .stTimeInput input {
+        border-radius: 9px !important;
+    }
+    .stProgress > div > div > div > div { background-color: var(--brand) !important; }
+
+    @media (prefers-reduced-motion: reduce) {
+        div.stButton > button { transition: none; }
+        div.stButton > button:hover { transform: none; }
+    }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🚀 Başarı ve Zaman Yönetimi")
+st.markdown('<div class="app-altbaslik">Odaklı çalışma sürelerini başlat, kaydet ve gün gün takip et.</div>', unsafe_allow_html=True)
 
 gun_index = datetime.date.today().timetuple().tm_yday % len(motivasyon_sozleri)
-st.markdown(f'<div class="soz-kutusu">🌟 <b>Günün Sözü:</b> {motivasyon_sozleri[gun_index]}</div>', unsafe_allow_html=True)
+st.markdown(
+    f'<div class="soz-kutusu">'
+    f'<span class="soz-etiket">★ Günün Sözü</span>'
+    f'<span class="soz-metin">{motivasyon_sozleri[gun_index]}</span>'
+    f'</div>',
+    unsafe_allow_html=True
+)
 st.markdown("---")
 
 st.session_state.veri_listesi = veri_yukle().reindex(columns=COLUMNS)
@@ -188,7 +276,7 @@ else:
 
         st.markdown(
             f'<div class="gun-baslik">📅 <b>{t}</b> &nbsp;—&nbsp; '
-            f'{len(grup)} kayıt &nbsp;|&nbsp; Toplam: <b>{sure_metni(gunluk_dk)}</b></div>',
+            f'{len(grup)} kayıt &nbsp;|&nbsp; Toplam: <span class="gun-toplam">{sure_metni(gunluk_dk)}</span></div>',
             unsafe_allow_html=True
         )
 
