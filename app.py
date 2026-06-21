@@ -135,6 +135,44 @@ with st.sidebar:
             st.success(f"Kaydedildi! Bugün {sure_metni(sure_dk)} çalıştın, {aktif['isim']}! 🌟")
             st.rerun()
 
+    st.markdown("---")
+    with st.expander("➕ Manuel Kayıt Ekle"):
+        with st.form("manuel_kayit", clear_on_submit=True):
+            m_isim = st.selectbox("Ad Soyad", list(kullanici_sozlugu.keys()), key="m_isim")
+            m_tarih = st.date_input("Tarih", datetime.date.today(), key="m_tarih")
+            sc1, sc2 = st.columns(2)
+            m_bas = sc1.time_input("Başlangıç", datetime.time(9, 0), key="m_bas")
+            m_bit = sc2.time_input("Bitiş", datetime.time(10, 0), key="m_bit")
+            m_konu = st.text_input("Konu Başlığı", key="m_konu")
+            m_hedef = st.number_input("Hedef (Saat) – opsiyonel", min_value=0.0, step=0.5, key="m_hedef")
+            m_ekle = st.form_submit_button("Kaydet ➕")
+
+        if m_ekle:
+            if m_konu.strip() == "":
+                st.error("Lütfen konu başlığını doldurunuz.")
+            else:
+                bas_dt = datetime.datetime.combine(m_tarih, m_bas)
+                bit_dt = datetime.datetime.combine(m_tarih, m_bit)
+                m_sure_sn = (bit_dt - bas_dt).total_seconds()
+                if m_sure_sn <= 0:
+                    st.error("Bitiş saati başlangıçtan sonra olmalı.")
+                else:
+                    m_sure_dk = round(m_sure_sn / 60, 1)
+                    m_basari = round((m_sure_sn / 3600 / m_hedef * 100) if m_hedef > 0 else 0, 2)
+                    m_satir = pd.DataFrame([{
+                        "Tarih": m_tarih.strftime("%Y-%m-%d"),
+                        "Başlangıç": m_bas.strftime("%H:%M:%S"),
+                        "Bitiş": m_bit.strftime("%H:%M:%S"),
+                        "Süre (dk)": m_sure_dk,
+                        "Ad Soyad": m_isim,
+                        "Konu": m_konu,
+                        "Hedef (Saat)": m_hedef,
+                        "Başarı (%)": m_basari,
+                    }])
+                    veri_ekle(m_satir)
+                    st.success(f"Manuel kayıt eklendi: {m_isim} — {sure_metni(m_sure_dk)} ✅")
+                    st.rerun()
+
 st.subheader("📊 Çalışma Kayıtları (Gün Gün)")
 
 df = st.session_state.veri_listesi
@@ -161,8 +199,10 @@ else:
                 if isim_row in kullanici_sozlugu and os.path.exists(kullanici_sozlugu[isim_row]):
                     st.image(kullanici_sozlugu[isim_row], width=45)
             with cols[1]:
+                bas_g = row["Başlangıç"] if pd.notna(row["Başlangıç"]) else "—"
+                bit_g = row["Bitiş"] if pd.notna(row["Bitiş"]) else "—"
                 st.write(
-                    f"🕘 {row['Başlangıç']} – {row['Bitiş']}  |  "
+                    f"🕘 {bas_g} – {bit_g}  |  "
                     f"**{isim_row}** — {row['Konu']}  |  "
                     f"⏱️ {sure_metni(row['Süre (dk)'])}"
                 )
@@ -175,6 +215,25 @@ else:
                     pass
 
     st.divider()
+
+    with st.expander("🗑️ Kayıt Sil"):
+        st.caption("Silmek istediğin kayıtların 'Sil' kutusunu işaretleyip butona bas.")
+        sil_df = df.copy()
+        sil_df.insert(0, "Sil", False)
+        duzenlenen = st.data_editor(
+            sil_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={"Sil": st.column_config.CheckboxColumn("Sil")},
+            disabled=[c for c in sil_df.columns if c != "Sil"],
+            key="sil_editor",
+        )
+        secili = int(duzenlenen["Sil"].sum())
+        if st.button(f"Seçilenleri Sil 🗑️ ({secili})", disabled=secili == 0):
+            kalan = duzenlenen[~duzenlenen["Sil"]].drop(columns=["Sil"])
+            veri_kaydet(kalan.reindex(columns=COLUMNS))
+            st.success(f"{secili} kayıt silindi.")
+            st.rerun()
 
     with st.expander("📋 Tüm kayıtları tablo olarak gör / indir"):
         st.dataframe(df, use_container_width=True)
