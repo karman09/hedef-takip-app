@@ -146,14 +146,24 @@ st.markdown("""
 st.title("🚀 Başarı ve Zaman Yönetimi")
 st.markdown('<div class="app-altbaslik">Odaklı çalışma sürelerini başlat, kaydet ve gün gün takip et.</div>', unsafe_allow_html=True)
 
-gun_index = datetime.date.today().timetuple().tm_yday % len(motivasyon_sozleri)
-st.markdown(
-    f'<div class="soz-kutusu">'
-    f'<span class="soz-etiket">★ Günün Sözü</span>'
-    f'<span class="soz-metin">{motivasyon_sozleri[gun_index]}</span>'
-    f'</div>',
-    unsafe_allow_html=True
-)
+# Günün sözü veya resmi kısmı
+bugun = datetime.date.today()
+ozel_tarih = datetime.date(2026, 6, 25) # 
+
+if bugun == ozel_tarih:
+    st.markdown('<div class="soz-kutusu">', unsafe_allow_html=True)
+    st.image("tebrik.png", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+else:
+    gun_index = bugun.timetuple().tm_yday % len(motivasyon_sozleri)
+    st.markdown(
+        f'<div class="soz-kutusu">'
+        f'<span class="soz-etiket">★ Günün Sözü</span>'
+        f'<span class="soz-metin">{motivasyon_sozleri[gun_index]}</span>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+
 st.markdown("---")
 
 st.session_state.veri_listesi = veri_yukle().reindex(columns=COLUMNS)
